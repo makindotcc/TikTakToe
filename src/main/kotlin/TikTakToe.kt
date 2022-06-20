@@ -55,16 +55,16 @@ private suspend fun onMessage(event: MessageCreateEvent) {
         .toSet()
         .take(5)
     if (urls.isNotEmpty()) {
-        replyWithDownloadUrls(urls, message)
+        message.replyWithDownloadUrls(urls)
     }
 }
 
-private suspend fun replyWithDownloadUrls(urls: Collection<URL>, message: Message) {
+private suspend fun Message.replyWithDownloadUrls(urls: Collection<URL>) {
     val downloadUrls = runCatching { getTikTaksDownloadUrl(urls) }
         .onSuccess {
             if (it.isNotEmpty()) {
                 logger.info("Extracting videos from: $it.")
-                message.suppressEmbedsAsync()
+                suppressEmbedsAsync()
             }
         }
         .onFailure { logger.error("Could not get tiktaks urls. Urls: {}", urls, it) }
@@ -73,7 +73,7 @@ private suspend fun replyWithDownloadUrls(urls: Collection<URL>, message: Messag
         onFailure = { "unexpected error" },
     )
     if (response.isNotEmpty()) {
-        message.reply {
+        reply {
             content = response
             allowedMentions = AllowedMentionsBuilder().apply {
                 repliedUser = false
@@ -85,7 +85,7 @@ private suspend fun replyWithDownloadUrls(urls: Collection<URL>, message: Messag
 private suspend fun Message.suppressEmbedsAsync() = coroutineScope {
     launch {
         edit {
-            flags = flags?.minus(MessageFlag.SuppressEmbeds)
+            flags = flags?.plus(MessageFlag.SuppressEmbeds)
                 ?: MessageFlags(MessageFlag.SuppressEmbeds)
         }
     }
